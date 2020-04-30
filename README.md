@@ -1,3 +1,7 @@
-## Blog entries
+Cesar Miquel has been involved with computers since he got his first computer in the 1980′s. He's gone from programming assembly language for the 6809 and 6502 processors, writting C and C++ code for industrial applications, running numerical simulations to web development. Since 1995 he has been mostly using open source software.
 
-**Mar 29, 2020** [Mixing colors with watercolor, Sarah Simbet, sketching ideas, Ghidra for GB/C64 reverse engineering and Flutter/Dart ideas](2020-03-29.md)
+Currently he is a partner at Easytech, an Argentinian based company involved in developing web based applications and sites for the enterprise. There he currently leads the development team involved in developing enterprise web applications and sites.
+
+He also holds a PHD in Physics from the University of Buenos Aires were he has done research in quantum computers. He has several publications in scientific journals including one in Nature.
+
+In his free time he enjoys drawing, playing guitar, surfing and spending time with his wife and daughters.
