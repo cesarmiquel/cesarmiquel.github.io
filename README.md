@@ -1,3 +1,4 @@
+##About me
 Cesar Miquel has been involved with computers since he got his first computer in the 1980′s. He's gone from programming assembly language for the 6809 and 6502 processors, writting C and C++ code for industrial applications, running numerical simulations to web development. Since 1995 he has been mostly using open source software.
 
 Currently he is a partner at Easytech, an Argentinian based company involved in developing web based applications and sites for the enterprise. There he currently leads the development team involved in developing enterprise web applications and sites.
