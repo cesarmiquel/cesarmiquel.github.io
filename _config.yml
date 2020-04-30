@@ -2,6 +2,7 @@ remote_theme: thelehhman/plainwhite-jekyll
 
 plainwhite:
   name: César Miquel
+  show_excerpts: true
   tagline: |
     Sr. Developer
     @easytechgreen 
