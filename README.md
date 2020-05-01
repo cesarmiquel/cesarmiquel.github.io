@@ -1,8 +1,9 @@
-Cesar Miquel has been involved with computers since he got his first computer in the 1980′s. He's gone from programming assembly language for the 6809 and 6502 processors, writting C and C++ code for industrial applications, running numerical simulations to web development. Since 1995 he has been mostly using open source software.
+# README
 
-Currently he is a partner at Easytech, an Argentinian based company involved in developing web based applications and sites for the enterprise. There he currently leads the development team involved in developing enterprise web applications and sites.
+This is my site. To test locally:
 
-He also holds a PHD in Physics from the University of Buenos Aires were he has done research in quantum computers. He has several publications in scientific journals including one in Nature.
+```
+$ jekyll s
+```
 
-In his free time he enjoys drawing, playing guitar, surfing and spending time with his wife and daughters.
-(README)
+You need to have Jekyll version 3.8.5 (which is the supported version used in Github pages) installed. You can install via `gem install jekyll -v 3.8.5`.
