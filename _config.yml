@@ -1,8 +1,8 @@
 remote_theme: thelehhman/plainwhite-jekyll
+show_excerpts: true
 
 plainwhite:
   name: César Miquel
-  show_excerpts: true
   tagline: |
     Sr. Developer
     @easytechgreen 
@@ -13,3 +13,8 @@ plainwhite:
     github: cesarmiquel
     instagram: cesarmiquel
     facebook: cesar.miquel.9
+
+plugins:
+  - jekyll-remote-theme
+  - jekyll-seo-tag
+
