@@ -1,0 +1,316 @@
+** About the notation in this document
+This text is using binary prefixes such as ki ("kibi") and Mi ("mibi") instead
+of k ("kilo") or M ("mega") when appropriate. 
+
+k = 1000
+M = 1000*1000 = 1000000
+ki= 1024
+mi= 1024*1024 = 1048576
+
+A dollar sign ($) is used as the hexadecimal prefix.
+
+B (upper-case B) means byte.
+b (lower-case b) means bit.
+
+_____________________________________________________________________________
+** The EMS cartridges
+This text is concerned with the blue non-USB EMS 32M cartridge (rev 1 and 2) as
+well as the black USB 64M cartridge. The 32M cartridge is a Gameboy flash
+cartridge with a 32 Mibit (=4 MiByte) flash chip. The 32M cartridge comes in
+(at least) two revisions, named after the type of Transferer device (1 or 2)
+that the cartridge was typically shipped with. Revisions 1 and 2 implement
+multi ROM in different but somewhat compatible ways.
+
+The 64M cartridge has a 64 Mibit (=8 MiByte). However, it is divided into two
+"pages" which can be selected by turning the Gameboy on and off. Each page is
+functionally identical to a single 32M revision 2 cartridge when it comes to
+multi-ROM capability, so it will simply be regarded as a special case of the
+32M rev 2 cartridge.
+
+_____________________________________________________________________________
+** Differentiating between 32M rev 1 and rev 2 cartridges.
+Here are som clues to identfying rev 1 and rev 2 cartridges visually:
+
+*Rev 1:
+Small text in the top left corner of the PCB saying GB32I.
+Bigger RAM chip (SOP-32 package) of BSI brand. (Lower left corner of board.)
+No electrolytic capacitor on the board.
+No ground plane on the back of the board.
+Cypress brand CY37064 CPLD with big "tree" logo. (Upper right corner of 
+board.)
+
+*Rev 2:
+Small text in the top left corner sayingof the PCB  "GB32I-1" or "GB32I-2".
+Smaller RAM chip (STSOP-32 package) of ISSI brand. (Lower left corner of 
+board.)
+Electrolytic capacitor in the center of the board.
+Big ground plane near the screw hole.
+M4-64/32 CPLD with small "V with circle over it" logo. (Upper right corner of
+board.)
+Can probably only be programmed with "Transferer II" device, not 
+"Transferer I".
+
+_____________________________________________________________________________
+** Other EMS cartridges
+I do not have access to any other EMS cartridges other than the ones described
+here. If you have the 32M "4*Atmel" cartridge (with 4 Atmel flash chip) or the
+16M EMS cartridge, or indeed any older GB flash cartridge, I'm interested in
+borrowing it for research.
+
+_____________________________________________________________________________
+** What the EMS menu does:
+
+The standard EMS menu copies code to WRAM which does the following. It's
+important that the code is in WRAM because the selectable bank, and eventually
+"bank 0" will be switched out.
+
+[$0000]=$0A		; Disable SRAM protection
+[$2000]=(bank)		; Set target bank
+[$1000]=$A5		; Enter configuration mode
+Read $4148 (ROM size) and $4149 (RAM size) and calculate ROM/RAM limit mask.
+[$7000]=(mask)		; ROM and RAM size limitation mask
+[$1000]=$98		; Exit configuration mode
+[$0000]=$0A		; Disable SRAM protection
+
+However, not all of these writes are actually necessary for correct function,
+as far as I can tell. Here is how each type of cartridge handles the different
+writes. In particular, the writes that disable SRAM protection are both
+unnecessary and potentially harmful. Maybe the writes to [$0000] are doing
+something useful on older (16M) EMS cartridges, but not on 32M or 64M, and I
+would discourage anyone implementing menu software or similar to to those 
+two writes.
+
+_____________________________________________________________________________
+**32M rev 1:
+Minimal bank switch sequence:
+Bank selection:	[$2000]=xx
+Config mode:	[$1000]=$A5
+Options:	[$7000]=--aabccc (binary)
+Exit cfg mode:	[$1000]=$98	(Not required, thoughhighly recommended)
+
+This value will be OR masked with the bank number of any ROM access (including
+of course accesses of bank 0 in the $0000-$3ffff which is the point of the
+multi ROM functionality.) The lowest bit is ignored (treated as zero) so
+writing $01, $03 or $05 to the multi ROM register is equivalent to writing
+$00, $02 or $04 respectively.
+
+* -- = Unused bits
+
+* aa = RAM size limiting
+; Size     Header Register
+; None    = $0 -> $30
+; 2   kiB = $1 -> $20
+; 8   kiB = $2 -> $20
+; 32  kiB = $3 -> $10
+; 128 kiB = $4 -> $00
+
+$00, $10, $20 work as expected, SRAM space is wrapped to fit the target size.
+For example, if RAM size is set to 32 kiB and the program tries to access
+bank 4, by writing $04 to $4000, bank 0 will instead be selected.
+
+However, $30 seems to be no different from $20.
+
+* b   = MBC mode
+0 = Writing $00 to [$2000] selects bank 1 (Emulate MBC1 mode)
+1 = Writing $00 to [$2000] selects bank 0 (MBC5 mode)
+
+The menu ROM will always leave this at zero without checking the header field
+for the MBC type. On a rev 1 cartridge, this will always enable MBC1 mode.
+On a rev 2 cartridge, this flag will be ignored, just like the rest of the
+data in this byte, and the cartridge will continue to run in MBC5 mode.
+
+* ccc = ROM size limit.
+111 = 32 kiB
+110 = 64 kiB
+...
+001 = 2  MiB
+000 = 4  MiB
+
+This is basically 0148 in the header xor 7 (for standard size values in the
+range 0-7) Writing this value will also coerce 
+
+Writing to $7000 is only valid while configuration mode is enabled. The write
+simultaneously copies the bankswitch value into the multi-ROM register and
+applies masking to the ROM and RAM addresses. 
+
+The ROM size limit value determines how many bits are DISCARDED from the real
+address (bank byte) and how many bits are SELECT from the multi ROM register,
+counted from the left.
+
+_____________________________________________________________________________
+**Example 1:
+ROM size limit=5 (128 kiB)
+Multi ROM register=AA (hex) or 10101010 (binary)
+Requested ROM bank=9 or 00001001 (binary)
+
+5 bits will be selected from the multi ROM register. The three lower bits will
+be discarded.
+
+10101010
+vvvvv---
+10101---
+
+5 bits will be discarded from the requested ROM bank
+
+00001001
+-----vvv
+-----001
+
+Resulting data will be gotten from the combination of those two bit masks.
+
+10101--- Multi ROM register
+-----001 Requested bank
+=
+10101001 <- Data will be read from address.
+
+_____________________________________________________________________________
+**Example 2:
+ROM size limit=7 (32 kiB)
+
+Multi ROM register=$55 (hex) or 01010101 (binary)
+Requested ROM bank=$01 or 00000001 (binary)
+
+7 bits will be selected from the multi ROM register. (This is the maximum 
+value, meaning that the least significant bit of the multi ROM register will
+ALWAYS be discarded no matter what.
+
+01010101
+vvvvvvv-
+0101010-
+
+7 bits will be discarded from the requested ROM bank
+
+00000001
+-------v
+-------1
+
+0101010- Multi ROM register
+-------1 Requested bank
+=
+01010101 <- Data will be read from address.
+
+_____________________________________________________________________________
+**Example 3:
+ROM size limit=0 (4 MiB)
+
+Multi ROM register=$55 (hex) or 01010101 (binary)
+Requested ROM bank=$AA (hex) or 10101010 (binary)
+
+0 bits will be selected from the multi ROM register. Ie, in this mode, the
+multi ROM register will effectively be entirely ignored!
+
+01010101
+--------
+--------
+
+0 bits will be discarded from the requested ROM bank, ie ROM bank value will
+be used without conversion.
+
+10101010
+vvvvvvvv
+10101010
+
+_____________________________________________________________________________
+**32M rev 2:
+Minimal bank switch sequence:
+Bank selection:	[$2000]=xx
+Options:	[$7000]=(Don't care)
+
+The rev 2 (and consequently the 64M) has a very minimal multi ROM functionality
+compared to rev 1. First load the target bank into the bank switch register
+($2000) then write any value to $7000 to copy the bank switch value into the
+internal "multi ROM" register. This can be done at any time without the need
+to enable configuration mode.
+
+This value will be OR masked with the bank number of any ROM access (including
+of course accesses of bank 0 in the $0000-$3ffff which is the point of the
+multi ROM functionality.)
+
+The lowest bit is ignored (treated as zero) so writing $01, $03 or $05 to the
+multi ROM register is equivalent to writing $00, $02 or $04 respectively.
+
+The rev 2 cartridge always emulates an MBC5-like MBC, which can not emulate the
+"writing 00 shows bank 01" feature/bug and does not support any of the flags
+that can be written to $7000 on rev 1 cartridges. It also ignores, and doesn't
+require any other writes than the two described above. In other words, there's
+no way to protect the multi ROM register, which means it can easily be 
+overwritten by the running program, eiher by mistake or purposefully, which
+will probably crash the program.
+
+_____________________________________________________________________________
+**Alignment
+Because of how both revisions of the cartridge work, any ROM images used for
+multi ROM needs to be aligned to boundaries of their own size. For example,
+a 64 kiB ROM must start at an offset of 64 kiB, 128 kiB, 192 kiB, 256 kiB and
+so on. 
+
+_____________________________________________________________________________
+** The difference between rev 1 and rev 2 in practice
+Here are some real life examples of how each cartridge reacts in different
+situations. In this example, a multi ROM value of 04 is used, and banks $0-$f
+are requested by writing each respective value to $2000. Because a multi ROM
+value of $04 is used, the target ROM image is assumed to start at bank $04.
+
+_____________________________________________________________________________
+00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f <- You request
+
+V You get V
+_____________________________________________________________________________
+04 05 06 07 04 05 06 07 0c 0d 0e 0f 0c 0d 0e 0f <- Rev 2 (no options possible)
+=========== <- At least these banks are correct but mirrored banks are not
+
+No options are available a rev 2 cart. A ROM that requests banks higher 03 and
+expect mirroring of lower banks may fail. The same with a ROM that writes 00
+to $2000 and expects its bank 1 to appear. (MBC1-MBC3 bug.)
+A rev2 just logic ORs the requested bank with the set ROM offset.
+_____________________________________________________________________________
+04 05 04 05 04 05 04 05 04 05 04 05 04 05 04 05 <- R 1, size=32ki, MBC5 mode
+
+This is exactly what you would expect if you hooked up a 32 kiB ROM to a real
+MBC5.
+_____________________________________________________________________________
+04 05 06 07 04 05 06 07 04 05 06 07 04 05 06 07 <- R 1, size=64ki, MBC5 mode
+
+This is exactly what you would expect if you hooked up a 64 kiB ROM to a real
+MBC5.
+_____________________________________________________________________________
+05 05 06 07 05 05 06 07 05 05 06 07 05 05 06 07 <- R 1, size=64ki, MBC1 mode
+
+The MBC1 is not emulated perfectly in repeated banks. A real MBC1 would only
+have this bug when writing $00, $20, $40 or $60 to the bank switch register
+register. However, this is sufficient to solve problems with games that write
+$00 and expect bank $01.
+_____________________________________________________________________________
+00 01 02 03 04 05 06 07 00 01 02 03 04 05 06 07 <- R 1, size=128ki, MBC5 mode
+
+A 128kiB ROM limit (value 5 in the 3 bit ROM limit value) is bigger than the
+size of the alignment for a ROM starting bank $04 (4*16 kiB = 64 kiB) which
+means that $04 is "rounded down" to $00.
+
+Technically, the set bit that represents the number 4 has been truncated 
+because the ROM size limit register only allows 5 bits from multi ROM register
+to be used.
+
+00000100 (4) <- Multi ROM register
+-----xxx     <- ROm size limit register (Value 5 = use 5 bits from ML register)
+_____________________________________________________________________________
+** Switching "pages" on USB EMS 64M cartridge
+In order to scout for the possibility that it might be possible to select the
+EMS 64M "page" from the Gameboy CPU, I made a program which writes every
+possible byte value to every possible address in the $0000-$7fff range and
+check whether the page had been flipped after each write. However, the test
+came back negative, which makes me think this is not possible, or it requires
+a multi step command. The USB controller can obviously switch freely between 
+page 1 and 2, but it might be using an IO pin on its chip which could not be
+from the Gameboy CPU address/data bus.
+
+_____________________________________________________________________________
+Research by nitro2k01 / Didrik Madheden
+
+http://blog.gg8.se/wordpress/
+
+Document version 1.0
+Released 2013-03-04
+
+Document version 1.1
+Edited 2013-09-21 (Fixed a couple of typos.)
