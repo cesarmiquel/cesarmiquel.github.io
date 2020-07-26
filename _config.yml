@@ -3,6 +3,7 @@ show_excerpts: true
 
 plainwhite:
   name: César Miquel
+  portfolio_image:  "assets/portfolio.png"
   tagline: |
     Sr. Developer
     @easytechgreen 
