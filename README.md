@@ -11,7 +11,7 @@ You need to have Jekyll version 3.8.5 (which is the supported version used in Gi
 When moving from by Dropbox/Blog to here you need to run:
 
 ```
-$ sed -ie 's/imgs\//\/assets\/ings\//g' _posts/<post>
+$ sed -ie 's/imgs\//\/assets\/imgs\//g' _posts/<post>
 ```
 
 To update URLs
