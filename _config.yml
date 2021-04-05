@@ -2,9 +2,9 @@ remote_theme: thelehhman/plainwhite-jekyll
 show_excerpts: true
 
 # Seo
-title: César Miquel's blog
-description: This blog as entries of things I find interesting and might want to revisit later. I also posts some of my experiments in generative art coding and demos.
-image: /assets/portfolio.png
+title: "César Miquel's blog"
+description: "This blog as entries of things I find interesting and might want to revisit later. I also posts some of my experiments in generative art coding and demos."
+logo: "/assets/portfolio.png"
 author: César Miquel
 twitter:
     card: summary
