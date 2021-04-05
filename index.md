@@ -1,5 +1,6 @@
 ---
 title: "About Me"
+image: "/assets/portfolio.png"
 layout: home
 ---
 
