@@ -13,10 +13,16 @@ twitter:
 plainwhite:
   name: César Miquel
   portfolio_image:  "assets/portfolio.png"
+  dark_mode: true
   tagline: |
     Sr. Developer
     @easytechgreen 
   date_format: "%d/%m/%Y"
+  condensed_mobile:
+    - home
+    - post
+    - page
+
 
   social_links:
     twitter: cesarmiquel
