@@ -1,5 +1,17 @@
 # README
 
+## Installing Jekyll
+
+The site uses Jelkyll you need to install Ruby, Bundler and Gems. You can follow the instructions here for Ubuntu: https://jekyllrb.com/docs/installation/ubuntu/. Once you have the latest version of the tools installed you can do:
+
+```
+$ bundle install
+```
+
+To install all dependencies. You are set to start developing.
+
+## Develop locally
+
 This is my site. To test locally:
 
 ```
