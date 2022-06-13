@@ -2,31 +2,24 @@
 
 ## Installing Jekyll
 
-The site uses Jelkyll you need to install Ruby, Bundler and Gems. You can follow the instructions here for Ubuntu: https://jekyllrb.com/docs/installation/ubuntu/. Once you have the latest version of the tools installed you can do:
+To avoid installing Ruby and Gems and Bundler and all the other Jekyll requirements I'm using a Docker container: [envygeeks/jekyll-docker](https://github.com/envygeeks/jekyll-docker). Work great!
+
+To have a local version working just do:
 
 ```
-$ bundle install
+export JEKYLL_VERSION=3.8
+docker run --rm \
+  --volume="$PWD:/srv/jekyll:Z" \
+  --publish [::1]:4000:4000 \
+  jekyll/jekyll:$JEKYLL_VERSION \
+  jekyll serve
 ```
-
-To install all dependencies. You are set to start developing.
-
-## Develop locally
-
-This is my site. To test locally:
-
+I have a bash script with that code:
 ```
-$ bundle exec jekyll serve
+$ ./serve.sh
 ```
+And open your browser on `http://localhost:4000/`. Thats it!
 
-You need to have Jekyll version 3.8.5 (which is the supported version used in Github pages) installed. You can install via `gem install jekyll -v 3.8.5`.
-
-When moving from by Dropbox/Blog to here you need to run:
-
-```
-$ sed -ie 's/imgs\//\/assets\/imgs\//g' _posts/<post>
-```
-
-To update URLs
 
 ## Notes
 
