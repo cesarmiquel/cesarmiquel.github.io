@@ -30,3 +30,6 @@ end
 
 # Add remote theme support
 gem "jekyll-remote-theme"
+
+# Add another theme for testing
+gem "no-style-please"

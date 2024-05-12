@@ -1,4 +1,4 @@
-remote_theme: thelehhman/plainwhite-jekyll
+remote_theme: riggraz/no-style-please
 show_excerpts: true
 
 # Seo
@@ -29,6 +29,12 @@ plainwhite:
     github: cesarmiquel
     instagram: cesarmiquel
     facebook: cesar.miquel.9
+
+theme_config:
+  appearance: "auto" # can be "light", "dark" or "auto"
+  back_home_text: ".." # customize text for homepage link in post layout
+  date_format: "%Y-%m-%d" # customize how date is formatted
+  show_description: true # show blog description in home page
 
 plugins:
   - jekyll-remote-theme
