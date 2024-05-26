@@ -55,9 +55,6 @@ table, th, td {
   padding: 0.4rem;
 }
 
-code {
-}
-
 div.highlighter-rouge code {
   display: block;
   overflow-x: auto;
@@ -91,6 +88,11 @@ img {
 // $ docker-compose exec jekyll help style
 //
 // ---------------------------------------------------------------------------
+
+code.highlighter-rouge {
+  color: #fbf1c7;
+  background-color: #282828;
+}
 
 .highlight table td { padding: 5px; }
 .highlight table pre { margin: 0; }
