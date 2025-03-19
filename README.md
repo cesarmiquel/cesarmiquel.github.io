@@ -23,4 +23,4 @@ And open your browser on `http://localhost:4000/`. Thats it!
 
 ## Notes
 
-- **Post format** my nameing convention for posts is _posts/YYYY-MM-DD-week-WW-md where WW is the [ISO week](https://en.wikipedia.org/wiki/ISO_week_date). You can find on that page the the current month and ISO week or use `date +%W` to print it. WW goes from 01-52 (or 53) depending on the year. To generate the filename I do: $ echo `date +_posts/%Y-%m-%d-week-%W.md`
+- **Post format** my nameing convention for posts is _posts/YYYY-MM-DD-week-WW-md where WW is the [ISO week](https://en.wikipedia.org/wiki/ISO_week_date). You can find on that page the the current month and ISO week or use `date +%V` to print it. %V goes from 01-52 (or 53) depending on the year. To generate the filename I do: $ echo `date -dlast-monday +_posts/%Y-%m-%d-week-%V.md`
