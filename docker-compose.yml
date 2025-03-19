@@ -3,7 +3,7 @@ version: "3.9"
 services:
   jekyll:
     build: .
-    command: jekyll serve --livereload --drafts
+    command: jekyll serve --livereload --drafts --host 0.0.0.0
     volumes:
       - .:/app
     ports:

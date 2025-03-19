@@ -31,7 +31,7 @@ gem "jekyll", "~> 3"
 # Add remote theme support
 gem "jekyll-remote-theme"
 
-gem "jektex"
+gem "jektex", "~> 0.1.1"
 
 gem "kramdown-parser-gfm"
 
