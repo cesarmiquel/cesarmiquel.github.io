@@ -21,6 +21,35 @@ body {
 
 .post-meta { text-align: right; }
 
+.post-nav {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.post-nav-item {
+  flex: 1;
+}
+
+.post-nav-item-next {
+  text-align: right;
+}
+
+.post-nav-label {
+  display: block;
+  opacity: 0.7;
+}
+
+@media (max-width: 600px) {
+  .post-nav {
+    flex-direction: column;
+  }
+
+  .post-nav-item-next {
+    text-align: left;
+  }
+}
+
 h2, h3, h4, h5, h6 { margin-top: 3rem; }
 
 hr { margin: 2rem 0; }
