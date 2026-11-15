@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Harmonic Oscillator for Sines &amp; Cosines in Size Coding</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-alt: #0b1120;
+      --border: #334155;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.12);
+      --code-bg: #090d16;
+      --highlight: #fbbf24;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 2.5rem 1.25rem;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.65;
+    }
+    .container {
+      max-width: 840px;
+      margin: 0 auto;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .badge {
+      display: inline-block;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      margin-bottom: 0.75rem;
+    }
+    h1 {
+      margin: 0 0 0.75rem 0;
+      font-size: 1.9rem;
+      line-height: 1.25;
+      color: #ffffff;
+    }
+    .lead {
+      margin: 0;
+      font-size: 1.05rem;
+      color: #cbd5e1;
+    }
+    h2 {
+      font-size: 1.35rem;
+      margin-top: 2.25rem;
+      margin-bottom: 0.85rem;
+      color: #ffffff;
+      border-left: 3px solid var(--accent);
+      padding-left: 0.75rem;
+    }
+    h3 {
+      font-size: 1.1rem;
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+      color: var(--accent);
+    }
+    p {
+      margin: 0 0 1rem 0;
+    }
+    .math-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin: 1rem 0;
+      font-family: "Cambria Math", "Times New Roman", serif;
+      font-size: 1.15rem;
+      text-align: center;
+      color: #f8fafc;
+    }
+    .math-block div {
+      margin: 0.3rem 0;
+    }
+    ul {
+      padding-left: 1.35rem;
+      margin: 0.75rem 0 1.25rem 0;
+    }
+    li {
+      margin-bottom: 0.6rem;
+    }
+    strong {
+      color: #ffffff;
+    }
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      background: rgba(148, 163, 184, 0.15);
+      padding: 0.15rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.9em;
+      color: #e2e8f0;
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      overflow-x: auto;
+      margin: 0.75rem 0 1.5rem 0;
+    }
+    pre code {
+      background: transparent;
+      padding: 0;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: #e2e8f0;
+    }
+    .comment {
+      color: #64748b;
+    }
+    .keyword {
+      color: #38bdf8;
+    }
+    .number {
+      color: #fbbf24;
+    }
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin: 2rem 0;
+      text-align: center;
+    }
+    .chart-title {
+      font-weight: 600;
+      font-size: 1rem;
+      margin-bottom: 0.75rem;
+      color: #ffffff;
+    }
+    .chart-legend {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+    }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .swatch-circle {
+      width: 14px;
+      height: 2px;
+      border-top: 2px dashed #94a3b8;
+      display: inline-block;
+    }
+    .swatch-osc {
+      width: 14px;
+      height: 3px;
+      background: #38bdf8;
+      display: inline-block;
+    }
+    .swatch-start {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      display: inline-block;
+    }
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">Size Coding &amp; Demoscene Math</div>
+      <h1>Computing Sines and Cosines with the Harmonic Oscillator</h1>
+      <p class="lead">
+        To compute sines and cosines in size coding (like 256-byte or 4KB intros), you can use a
+        <strong>discrete harmonic oscillator</strong>, often called the <strong>Minsky circle algorithm</strong>
+        or <strong>magic circle algorithm</strong>. Instead of calling expensive <code>sin()</code> or
+        <code>cos()</code> instructions or storing lookup tables, you generate waves iteratively using just
+        two additions and two multiplications per step.
+      </p>
+    </header>
+
+    <section>
+      <h2>How the Math Works</h2>
+      <p>
+        A continuous harmonic oscillator is governed by the differential equation
+        <em>x'' = &minus;&omega;<sup>2</sup>x</em>. When discretized using a modified Euler method
+        (specifically, a symplectic Euler integrator), the update equations become:
+      </p>
+      <div class="math-block">
+        <div><em>x</em><sub><em>n</em>+1</sub> = <em>x</em><sub><em>n</em></sub> + &epsilon;<em>y</em><sub><em>n</em></sub></div>
+        <div><em>y</em><sub><em>n</em>+1</sub> = <em>y</em><sub><em>n</em></sub> &minus; &epsilon;<em>x</em><sub><em>n</em>+1</sub></div>
+      </div>
+      <p>
+        Notice that the second line uses the <strong>newly updated</strong> <em>x</em><sub><em>n</em>+1</sub>
+        rather than the old <em>x</em><sub><em>n</em></sub>. This small change keeps the determinant of the
+        transformation matrix equal to 1, which preserves energy and stops the wave from spiraling outward
+        or decaying to zero.
+      </p>
+      <ul>
+        <li>
+          <strong>Initial state:</strong> Set <em>x</em><sub>0</sub> = 1 (cosine) and <em>y</em><sub>0</sub> = 0
+          (sine) to start at angle 0.
+        </li>
+        <li>
+          <strong>Step size (&epsilon;):</strong> Controls the frequency. For small angles,
+          &epsilon; &approx; 2&pi; / <em>N</em>, where <em>N</em> is the number of steps per full circle.
+          More precisely, &epsilon; = 2 sin(&pi; / <em>N</em>).
+        </li>
+        <li>
+          <strong>Phase shift:</strong> Because the updates are staggered by half a step, <em>x</em> and
+          <em>y</em> are slightly off from a true 90&deg; phase difference by &epsilon; / 2 radians. For small
+          &epsilon;, this error is visually unnoticeable.
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Size-Coding Implementations</h2>
+
+      <h3>1. C / GLSL (4KB Intros)</h3>
+      <p>
+        In shader or C-based intros, the algorithm reduces to two lines inside a loop. You can often fold
+        the &epsilon; multiplication into bit-shifts if you work with fixed-point integers.
+      </p>
+      <pre><code><span class="comment">// Floating point (e.g., GLSL or C)</span>
+<span class="keyword">float</span> c = <span class="number">1.0</span>, s = <span class="number">0.0</span>;
+<span class="keyword">float</span> eps = <span class="number">0.01</span>; <span class="comment">// Frequency step</span>
+
+<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">1000</span>; i++) {
+    c += eps * s;
+    s -= eps * c; <span class="comment">// Uses the new 'c'</span>
+    <span class="comment">// Use 'c' (cos) and 's' (sin) here</span>
+}</code></pre>
+
+      <h3>2. Fixed-Point / Bit-Shift Trick (256-Byte Intros)</h3>
+      <p>
+        In extreme size coding (like x86 assembly), floating-point constants take up precious bytes. If you
+        choose &epsilon; = 2<sup>&minus;<em>k</em></sup>, multiplication becomes a simple bit-shift
+        (<code>sar</code>), eliminating the need for any constants or FPU/SSE instructions.
+      </p>
+      <pre><code><span class="comment">// Integer fixed-point version (no floats, no multiplies)</span>
+<span class="keyword">int</span> c = <span class="number">1</span> &lt;&lt; <span class="number">16</span>; <span class="comment">// Initial radius = 65536</span>
+<span class="keyword">int</span> s = <span class="number">0</span>;
+
+<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">1000</span>; i++) {
+    c += s &gt;&gt; <span class="number">6</span>; <span class="comment">// eps = 1/64</span>
+    s -= c &gt;&gt; <span class="number">6</span>;
+}</code></pre>
+
+      <h3>3. x86 Assembly (16-bit / 32-bit DOS Intros)</h3>
+      <p>
+        Using 16-bit registers (<code>ax</code> for cosine, <code>bx</code> for sine), the entire
+        sine/cosine generator takes only <strong>8 bytes</strong> of machine code:
+      </p>
+      <pre><code><span class="comment">; Initial setup: AX = 0x4000 (radius), BX = 0</span>
+loop_start:
+    <span class="keyword">mov</span> dx, bx      <span class="comment">; Copy sin</span>
+    <span class="keyword">sar</span> dx, <span class="number">6</span>       <span class="comment">; dx = sin / 64</span>
+    <span class="keyword">add</span> ax, dx      <span class="comment">; cos += sin / 64</span>
+
+    <span class="keyword">mov</span> dx, ax      <span class="comment">; Copy updated cos</span>
+    <span class="keyword">sar</span> dx, <span class="number">6</span>       <span class="comment">; dx = cos / 64</span>
+    <span class="keyword">sub</span> bx, dx      <span class="comment">; sin -= cos / 64</span>
+    <span class="comment">; Repeat loop</span></code></pre>
+    </section>
+
+    <section>
+      <h2>Key Trade-offs &amp; Tips</h2>
+      <ul>
+        <li>
+          <strong>Stability vs. Precision:</strong> Because the symplectic update preserves area, the
+          trajectory forms a slightly tilted ellipse rather than a perfect circle. As long as |&epsilon;| &lt; 2,
+          the orbit remains completely stable and will never blow up to infinity, even after millions of
+          iterations.
+        </li>
+        <li>
+          <strong>Amplitude Scaling:</strong> The peak amplitude of <em>y</em> (sine) is slightly smaller than
+          <em>x</em> (cosine) by a factor of &radic;(1 &minus; &epsilon;<sup>2</sup> / 4). Keep &epsilon; small
+          (e.g., &le; 0.1 or bit-shifts of <code>4</code> or more) so the ellipse looks indistinguishable from
+          a circle.
+        </li>
+        <li>
+          <strong>No Random Access:</strong> Unlike <code>fsin</code>/<code>fcos</code> or Taylor series
+          approximations, you cannot jump to an arbitrary angle &theta;. This method works best for drawing
+          circles, spirals, waveforms, or driving continuous time-based animations.
+        </li>
+      </ul>
+
+      <div class="chart-card">
+        <div class="chart-title">Harmonic Oscillator Stability vs. True Circle (&epsilon; = 0.4, 16 Steps)</div>
+        <svg viewBox="0 0 500 500" width="100%" style="max-width: 440px; height: auto; display: block; margin: 0 auto;" role="img" aria-label="Parametric plot comparing the unit circle to the symplectic harmonic oscillator">
+          <rect x="0" y="0" width="500" height="500" fill="#0b1120" rx="8" />
+          <!-- Grid lines -->
+          <g stroke="#1e293b" stroke-width="1">
+            <line x1="80" y1="30" x2="80" y2="470" />
+            <line x1="165" y1="30" x2="165" y2="470" />
+            <line x1="335" y1="30" x2="335" y2="470" />
+            <line x1="420" y1="30" x2="420" y2="470" />
+            <line x1="30" y1="80" x2="470" y2="80" />
+            <line x1="30" y1="165" x2="470" y2="165" />
+            <line x1="30" y1="335" x2="470" y2="335" />
+            <line x1="30" y1="420" x2="470" y2="420" />
+          </g>
+          <!-- Axes -->
+          <line x1="30" y1="250" x2="470" y2="250" stroke="#475569" stroke-width="1.5" />
+          <line x1="250" y1="30" x2="250" y2="470" stroke="#475569" stroke-width="1.5" />
+          <!-- Axis Labels -->
+          <text x="458" y="242" fill="#94a3b8" font-size="12" font-family="sans-serif">X</text>
+          <text x="258" y="44" fill="#94a3b8" font-size="12" font-family="sans-serif">Y</text>
+          <text x="415" y="266" fill="#64748b" font-size="11" font-family="sans-serif">1.0</text>
+          <text x="72" y="266" fill="#64748b" font-size="11" font-family="sans-serif">-1.0</text>
+          <text x="256" y="84" fill="#64748b" font-size="11" font-family="sans-serif">1.0</text>
+          <text x="256" y="424" fill="#64748b" font-size="11" font-family="sans-serif">-1.0</text>
+          <!-- True Unit Circle -->
+          <circle cx="250" cy="250" r="170" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6,5" />
+          <!-- Symplectic Oscillator Trajectory -->
+          <polyline fill="none" stroke="#38bdf8" stroke-width="2" points="420.00,250.00 420.00,318.00 392.80,375.12 342.75,412.22 277.86,423.37 208.52,406.77 145.81,365.10 99.77,305.00 77.77,236.11 83.32,169.44 115.55,115.66 169.28,83.37 235.93,77.75 304.84,99.68 364.96,145.67 406.70,208.34 423.36,277.69" />
+          <!-- Points -->
+          <circle cx="420.00" cy="250.00" r="5" fill="#ef4444" />
+<circle cx="420.00" cy="318.00" r="3.5" fill="#38bdf8" />
+<circle cx="392.80" cy="375.12" r="3.5" fill="#38bdf8" />
+<circle cx="342.75" cy="412.22" r="3.5" fill="#38bdf8" />
+<circle cx="277.86" cy="423.37" r="3.5" fill="#38bdf8" />
+<circle cx="208.52" cy="406.77" r="3.5" fill="#38bdf8" />
+<circle cx="145.81" cy="365.10" r="3.5" fill="#38bdf8" />
+<circle cx="99.77" cy="305.00" r="3.5" fill="#38bdf8" />
+<circle cx="77.77" cy="236.11" r="3.5" fill="#38bdf8" />
+<circle cx="83.32" cy="169.44" r="3.5" fill="#38bdf8" />
+<circle cx="115.55" cy="115.66" r="3.5" fill="#38bdf8" />
+<circle cx="169.28" cy="83.37" r="3.5" fill="#38bdf8" />
+<circle cx="235.93" cy="77.75" r="3.5" fill="#38bdf8" />
+<circle cx="304.84" cy="99.68" r="3.5" fill="#38bdf8" />
+<circle cx="364.96" cy="145.67" r="3.5" fill="#38bdf8" />
+<circle cx="406.70" cy="208.34" r="3.5" fill="#38bdf8" />
+<circle cx="423.36" cy="277.69" r="3.5" fill="#38bdf8" />
+
+          <text x="428" y="238" fill="#fca5a5" font-size="11" font-family="sans-serif">(1, 0)</text>
+        </svg>
+        <div class="chart-legend">
+          <span class="legend-item"><span class="swatch-circle"></span> True Unit Circle (x&sup2; + y&sup2; = 1)</span>
+          <span class="legend-item"><span class="swatch-osc"></span> Symplectic Oscillator (&epsilon; = 0.4)</span>
+          <span class="legend-item"><span class="swatch-start"></span> Start (1, 0)</span>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      Discrete Harmonic Oscillator (Minsky Circle Algorithm) Reference Guide
+    </footer>
+  </div>
+</body>
+</html>

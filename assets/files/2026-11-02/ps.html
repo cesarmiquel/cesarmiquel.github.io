@@ -1,0 +1,777 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Parallax XOR Scroller</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+/* Layout: one reading column for prose, diagrams break out wider; a black CRT band carries the live demo. */
+:root {
+  --bg: #eceef3;
+  --surface: #f8f9fb;
+  --surface-2: #e0e4ec;
+  --fg: #141823;
+  --muted: #555d70;
+  --line: #c6ccd8;
+  --accent: #2f45c8;
+  --accent-ink: #ffffff;
+  --code-bg: #e2e6ee;
+  --crt: #05060a;
+  --crt-fg: #c9d0e0;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10131b; --surface: #171b26; --surface-2: #222838; --fg: #e4e7ef; --muted: #9aa2b5;
+    --line: #313849; --accent: #8e9dff; --accent-ink: #0d1020; --code-bg: #1b2030; --crt: #000000; --crt-fg: #c9d0e0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10131b; --surface: #171b26; --surface-2: #222838; --fg: #e4e7ef; --muted: #9aa2b5;
+  --line: #313849; --accent: #8e9dff; --accent-ink: #0d1020; --code-bg: #1b2030; --crt: #000000; --crt-fg: #c9d0e0;
+  color-scheme: dark;
+}
+
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 17px; line-height: 1.6; }
+.page {
+  max-width: 1040px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 96px;
+  display: grid; gap: 64px;
+}
+section { display: grid; gap: 18px; min-width: 0; }
+.prose { max-width: 68ch; display: grid; gap: 14px; }
+.prose p, .prose ul, .prose ol { margin: 0; }
+.prose ul, .prose ol { padding-left: 1.3em; display: grid; gap: 6px; }
+
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.2rem, 5.5vw, 3.6rem); line-height: 1.02; font-weight: 800; }
+h2 { font-size: clamp(1.5rem, 3vw, 2rem); line-height: 1.15; font-weight: 700; }
+h3 { font-size: 1.15rem; font-weight: 700; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 1.2rem; color: var(--muted); max-width: 60ch; margin: 0; }
+
+code, pre, .mono { font-family: var(--mono); font-size: 0.86em; }
+:not(pre) > code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--code-bg); padding: 14px 16px; border-radius: 8px; overflow-x: auto; margin: 0; line-height: 1.5; font-size: 13.5px; max-width: 100%; }
+pre .c { color: var(--muted); }
+.ref { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+header { display: grid; gap: 16px; }
+
+/* Live demo */
+.stage { display: grid; gap: 12px; min-width: 0; }
+.crt { background: var(--crt); border-radius: 10px; padding: clamp(10px, 3vw, 28px); display: grid; gap: 10px; }
+#scroller { width: 100%; aspect-ratio: 360 / 144; image-rendering: pixelated; image-rendering: crisp-edges; display: block; max-width: 100%; }
+.crt-readout { font-family: var(--mono); font-size: 12px; color: var(--crt-fg); display: flex; flex-wrap: wrap; gap: 6px 18px; min-height: 1.5em; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+button, .chip {
+  font-family: var(--mono); font-size: 13px; border: 1px solid var(--line); background: var(--surface);
+  color: var(--fg); border-radius: 6px; padding: 6px 12px; cursor: pointer;
+}
+button:hover, .chip:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible, .chip:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.chip { display: inline-flex; align-items: center; gap: 8px; user-select: none; }
+.chip input { margin: 0; accent-color: var(--accent); }
+.sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--line); flex: none; }
+label.range { display: inline-flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 13px; }
+input[type=range] { accent-color: var(--accent); width: 160px; max-width: 45vw; }
+select { font-family: var(--mono); font-size: 13px; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+.note { font-size: 14px; color: var(--muted); margin: 0; max-width: 75ch; }
+
+/* Three ideas */
+.ideas { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.idea { border-top: 3px solid var(--fg); padding-top: 12px; display: grid; gap: 6px; align-content: start; }
+.idea p { margin: 0; color: var(--muted); font-size: 15.5px; }
+
+/* Figures */
+figure { margin: 0; display: grid; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+figcaption { font-size: 14px; color: var(--muted); max-width: 75ch; }
+.svgwrap { overflow-x: auto; }
+.svgwrap svg { display: block; width: 100%; height: auto; min-width: 560px; }
+svg text { font-family: var(--mono); }
+.t-fg { fill: var(--fg); } .t-muted { fill: var(--muted); }
+.s-line { stroke: var(--line); } .s-fg { stroke: var(--fg); } .s-accent { stroke: var(--accent); } .f-accent { fill: var(--accent); }
+.f-cell { fill: var(--surface-2); } .f-crt { fill: var(--crt); } .f-surface { fill: var(--surface); }
+.readout { font-family: var(--mono); font-size: 13px; background: var(--code-bg); border-radius: 6px; padding: 8px 12px; overflow-x: auto; white-space: nowrap; }
+
+/* Pipeline chips */
+.cycle { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-family: var(--mono); font-size: 13px; }
+.cycle span.st { border: 1px solid var(--line); background: var(--surface); padding: 4px 10px; border-radius: 999px; }
+.cycle span.ar { color: var(--muted); }
+
+/* Tables */
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; font-size: 15px; min-width: 100%; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
+th { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
+td.num { font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 14px; }
+.cval { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 13.5px; }
+.word { font-family: "Anton", Impact, sans-serif; font-size: 18px; letter-spacing: 0.04em; }
+
+/* Palette */
+.strips { display: grid; gap: 10px; }
+.strip { display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); gap: 12px; align-items: center; }
+.strip .lbl { font-size: 14px; }
+.strip .lbl code { font-size: 12px; }
+.cells { display: grid; gap: 1px; grid-auto-flow: column; grid-auto-columns: 1fr; height: 26px; border-radius: 4px; overflow: hidden; border: 1px solid var(--line); }
+.cells.tall { grid-auto-flow: row; grid-template-columns: repeat(32, 1fr); grid-auto-columns: unset; height: auto; }
+.cells.tall i { height: 13px; }
+.cells i { display: block; }
+@media (max-width: 640px) { .strip { grid-template-columns: 1fr; } }
+
+.mixer { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 760px) { .mixer { grid-template-columns: 1fr; } }
+.mix-out { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; align-items: center; }
+.mix-out .big { width: 96px; height: 96px; border-radius: 8px; border: 1px solid var(--line); }
+.mix-out .mono { font-size: 13.5px; line-height: 1.7; }
+.grid32 { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+.g32 { border-radius: 5px; border: 2px solid transparent; padding: 4px 0 3px; text-align: center; font-family: var(--mono); font-size: 11px; line-height: 1.2; }
+.g32.on { border-color: var(--fg); box-shadow: 0 0 0 2px var(--bg) inset; }
+.grid256 { display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 2px; max-width: 520px; }
+.grid256 i { aspect-ratio: 1; display: block; border-radius: 2px; position: relative; }
+.grid256 i.forced::after { content: ""; position: absolute; inset: 35%; border-radius: 50%; background: var(--muted); }
+.legend-row { display: flex; flex-wrap: wrap; gap: 6px 16px; font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+.legend-row span { display: inline-flex; align-items: center; gap: 6px; }
+
+.pair { display: flex; flex-wrap: wrap; gap: 16px; }
+.pair > div { display: grid; grid-template-columns: 56px auto; gap: 10px; align-items: center; font-family: var(--mono); font-size: 13px; }
+.pair .big { width: 56px; height: 56px; border-radius: 6px; border: 1px solid var(--line); }
+
+.vgapair { display: inline-flex; border-radius: 5px; overflow: hidden; border: 1px solid var(--line); vertical-align: middle; }
+.vgapair i { display: block; width: 30px; height: 30px; }
+tr.sub td { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding-top: 16px; }
+.flag { font-family: var(--mono); font-size: 11.5px; border: 1px solid var(--muted); color: var(--fg); border-radius: 999px; padding: 1px 8px; margin-left: 6px; }
+.vgawords { display: grid; gap: 28px; }
+.vgawords h3 { margin-bottom: 6px; }
+
+footer { color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); padding-top: 18px; display: grid; gap: 8px; }
+footer p { margin: 0; max-width: 80ch; }
+
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="page">
+
+<header>
+  <div class="eyebrow">SCROLL.PAS · Turbo Pascal + 386 asm · VGA Mode X 360×480</div>
+  <h1>The four-layer XOR scroller</h1>
+  <p class="lede">One line of text drawn four times at four depths. Each copy writes its own bit of the pixel value, and the palette turns every combination of bits into an additive colour blend. Below is a live reconstruction, followed by how each part of the code works.</p>
+</header>
+
+<section class="stage" aria-label="Live reconstruction">
+  <div class="crt">
+    <canvas id="scroller" width="360" height="128" aria-label="Reconstruction of the parallax scroller"></canvas>
+    <div class="crt-readout" id="crtReadout"><span>Hover the band to inspect a pixel.</span></div>
+  </div>
+  <div class="controls">
+    <button id="playBtn" class="primary" type="button">Pause</button>
+    <label class="range" for="planes">Planes drawn <input id="planes" type="range" min="1" max="4" step="1" value="4"> <b id="planesVal">4</b></label>
+    <span id="layerToggles" class="controls" style="gap:8px"></span>
+  </div>
+  <p class="note">This uses the scene's real layer constants, colour schemes and palette code (360×480 mode, <code>shift = 145</code>), and the message from the commented-out line 620. The original font is replaced by Anton, and the timer is assumed to tick 60 times a second. The animated objects and the shine sprite are left out. "Planes drawn" simulates the early exit the engine takes on slow machines.</p>
+</section>
+
+<section>
+  <div class="eyebrow">Overview</div>
+  <h2>Three ideas carry the whole effect</h2>
+  <div class="ideas">
+    <div class="idea"><h3>XOR edge fill</h3><p>Letters are stored as outlines. A running XOR down each column fills them, and clears the scratch buffer at the same time.</p></div>
+    <div class="idea"><h3>One bit per layer</h3><p>Each of the four copies XORs its own bit into the pixel, so overlaps combine with no z-sorting and no read-modify-write.</p></div>
+    <div class="idea"><h3>Additive palette</h3><p>Each bit is a coloured light. The palette is built so that index <i>i</i> is the clamped sum of the lights for the bits set in <i>i</i>.</p></div>
+  </div>
+  <div class="prose"><p>The parallax is the same text drawn four times, each copy scaled toward a vanishing point at the centre of the screen.</p></div>
+</section>
+
+<section>
+  <div class="eyebrow">Screen setup · lines 587–605, 795–813</div>
+  <h2>Mode X, double-height lines and three pages</h2>
+  <div class="prose">
+    <ul>
+      <li>The screen is Mode X (planar VGA) at 360 pixels wide, so one plane row is 90 bytes. <b>One byte column in a plane covers 4 screen pixels</b>, and most of the code works in that unit.</li>
+      <li>Lines 804–813 set CRTC register 9 (Max Scan Line) to 1, so every line is shown twice. 480 lines become 240 logical lines.</li>
+      <li>The text band is 128 rows tall and starts at <code>SCREEN_Y</code>, which is row 50 (<code>90*50</code>).</li>
+      <li>Three pages live at <code>0</code>, <code>90*240</code> and <code>90*480</code>. <code>setVisiblePage</code>, presumably called from the timer or retrace interrupt, points the CRTC start address at whichever page is <code>ready</code>.</li>
+    </ul>
+  </div>
+  <div class="cycle" aria-label="Page status cycle">
+    <span class="st">free</span><span class="ar">→</span><span class="st">drawing</span><span class="ar">→</span><span class="st">ready</span><span class="ar">→</span><span class="st">display</span><span class="ar">→</span><span class="st">free</span>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">DrawEdge · lines 124–214 &nbsp;/&nbsp; xorfill_xmode · lines 37–64</div>
+  <h2>Drawing a letter: XOR edge fill</h2>
+  <div class="prose">
+    <p>A glyph is a list of 16-bit words: the low byte is <code>y</code> and the high byte is <code>x</code> (in plane byte columns). Each word marks a spot where the glyph's outline crosses a column vertically, where a solid run starts or ends.</p>
+    <p><code>DrawEdge</code> only XORs the layer's value into those edge pixels of a scratch buffer. It has a fast path with no clipping (<code>@n1</code>) and a clipped path (<code>@n0</code>). In the clipped path, <code>cmp dh,90 / jae</code> rejects both x&nbsp;&lt;&nbsp;0 and x&nbsp;≥&nbsp;90 with one unsigned compare.</p>
+    <p><code>xorfill_xmode</code> then walks down each column keeping an accumulator. It toggles on at a top edge and off at a bottom edge, writes the result to video memory, and zeroes the scratch buffer as it goes:</p>
+  </div>
+<pre><span class="c">; for each 4-byte strip, for each of 128 rows</span>
+xor eax, ds:[si]      <span class="c">; toggle on the edges in this row</span>
+mov es:[di], eax      <span class="c">; write 4 filled bytes to VGA</span>
+mov ds:[si], ebx      <span class="c">; ebx = 0: clear the scratch buffer for next frame</span></pre>
+  <figure>
+    <div class="controls">
+      <button id="edgePlay" type="button">Play scan</button>
+      <label class="range" for="edgeRow">Rows processed <input id="edgeRow" type="range" min="0" max="12" step="1" value="7"> <b id="edgeRowVal">7</b></label>
+    </div>
+    <div class="svgwrap"><svg id="edgeSvg" viewBox="0 0 700 360" role="img" aria-label="Edge buffer and filled output"></svg></div>
+    <figcaption>Two glyphs from different layers share one buffer: a ring from layer 2 (value 4, red) and a T from layer 1 (value 2, green). Left: the edge values <code>DrawEdge</code> wrote, faded once the fill has read and cleared them. Right: what reaches the screen. Where both shapes overlap, the accumulator holds 6 and the pixel turns yellow. Since each layer owns its own bit, the two fills never disturb each other.</figcaption>
+  </figure>
+  <div class="prose">
+    <p>The scratch buffer is stored strip by strip so the fill can read it sequentially, 32 bits at a time:</p>
+  </div>
+<pre>offset = y*4 + (x shr 2)*512 + (x and 3)     <span class="c">{ line 133 }</span></pre>
+</section>
+
+<section>
+  <div class="eyebrow">get_xx_w · lines 296–323</div>
+  <h2>Planes and sub-pixel positioning</h2>
+  <div class="prose">
+    <p>In Mode X, pixel <code>x</code> lives in plane <code>x mod 4</code>. The scene renders each plane separately into <code>buf[0..3]</code>. A glyph placed at screen <code>x</code> contributes only its columns <code>gx</code> where <code>(x + gx) mod 4 = p</code> to plane <code>p</code>.</p>
+    <p>So the font stores <b>four pre-decimated variants of every glyph</b>, each with a 6-byte header (offset, length, width). That is why the lookup is <code>(ascii-65)*24 + w*6</code>. <code>get_xx_w</code> picks the variant <code>w = (p − x) and 3</code> and the starting byte column <code>xx</code>.</p>
+  </div>
+  <figure>
+    <div class="controls">
+      <label class="range" for="pxX">Glyph x <input id="pxX" type="range" min="0" max="13" step="1" value="5"> <b id="pxXVal">5</b></label>
+      <span class="controls" style="gap:6px" role="radiogroup" aria-label="Plane" id="planeBtns"></span>
+    </div>
+    <div class="svgwrap"><svg id="planeSvg" viewBox="0 0 700 230" role="img" aria-label="Plane decimation diagram"></svg></div>
+    <div class="readout" id="planeReadout"></div>
+    <figcaption>A 9-pixel-wide glyph at screen <code>x</code>. Only the highlighted columns land in the selected plane. Those columns make up glyph variant <code>w</code>, and their first one lands in plane byte <code>xx</code>. This gives smooth one-pixel scrolling even though each plane is addressed in 4-pixel steps.</figcaption>
+  </figure>
+  <h3>Progressive refinement</h3>
+  <div class="prose">
+    <p>Planes are written with a growing map mask, so each pass overwrites the planes above it:</p>
+  </div>
+<pre>order[0]:=15;  <span class="c">// 1111  plane 0's image goes to all 4 planes</span>
+order[1]:=14;  <span class="c">// 1110</span>
+order[2]:=12;  <span class="c">// 1100</span>
+order[3]:=8;   <span class="c">// 1000</span></pre>
+  <div class="prose">
+    <p>When the display is waiting for a new frame (<code>if find(ready)=-1 then break</code>, line 973), the loop stops early. The frame still looks complete, just at a quarter or half of the horizontal resolution. A slow machine loses detail instead of frames. Drag "Planes drawn" in the demo above to see it.</p>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Parallax · lines 615–618, 933, 949, 270</div>
+  <h2>Four copies of one line, at four depths</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Layer</th><th>prlx</th><th>width (spacing)</th><th>width / 42</th><th>depth ≈ 1/prlx</th></tr></thead>
+      <tbody id="layerTable"></tbody>
+    </table>
+  </div>
+  <div class="prose">
+    <p>Each frame computes:</p>
+  </div>
+<pre>text_x := 280 - (q shl 1);                    <span class="c">{ 2 px per timer tick }</span>
+x      := round(text_x*prlx + txt[l].shift);
+x      := text_chars_x[ch, layer] + o;        <span class="c">{ o = byte column from get_xx_w }</span></pre>
+  <div class="prose">
+    <p><code>text_chars_x</code> is precomputed and loaded from <code>textw480.bin</code>. The commented-out <code>precalc_text</code> (lines 223–253) shows how: cumulative letter positions using each layer's <code>width</code>, with narrow and wide factors for I, L, M, W and others. The spacing ratio matches <code>prlx</code>, so character <i>i</i> of layer <i>k</i> lands at about:</p>
+  </div>
+<pre>screen_x ≈ shift + prlx_k × (text_x + 4·42·i)</pre>
+  <div class="prose">
+    <p>That is a <b>perspective projection with the vanishing point at x = shift</b>, about the centre of the screen. Speed and letter spacing both shrink with distance, so the copies drift apart and line up again as they scroll.</p>
+  </div>
+  <figure>
+    <div class="controls">
+      <label class="range" for="perspX">text_x <input id="perspX" type="range" min="-700" max="280" step="2" value="-260"> <b id="perspXVal">-260</b></label>
+    </div>
+    <div class="svgwrap"><svg id="perspSvg" viewBox="0 0 720 440" role="img" aria-label="Top-down view of the four layers projected onto the screen"></svg></div>
+    <div class="readout" id="perspReadout"></div>
+    <figcaption>Top-down view. The four rows hold the same letters at the same world positions, placed behind the screen at depth <code>1/prlx − 1</code>. Rays from the eye through one letter hit the screen at four different places. A point at <code>x = shift</code> never moves, so it is the vanishing point.</figcaption>
+  </figure>
+  <div class="prose">
+    <p>Two simplifications:</p>
+    <ul>
+      <li>All layers use the <b>same glyphs</b> (the lookup has no layer term) and the same <code>y</code> (<code>DrawEdge(x, 0, …)</code>). Only the horizontal direction is 3D: letters don't shrink and don't move toward a horizon.</li>
+      <li>Only <b>7 characters per layer</b> are drawn, starting at <code>ch_start</code>. When a layer-3 character is fully off the left edge (<code>x &lt; -50</code>, line 272), <code>ch_start</code> moves forward. Layer 3 is the slowest, so it is always the last to leave and the skip is safe for every layer.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">text · lines 259–293 &nbsp;/&nbsp; color_scheme · lines 595–600</div>
+  <h2>Colour is a bitmask, chosen per word</h2>
+  <div class="prose">
+    <p>The "colour" that <code>text</code> passes to <code>DrawEdge</code> is a set of bits. It comes from <code>color_scheme[segment, layer]</code>, where the segment depends on the character's position in the message. With the message on line 620, the segment boundaries fall exactly on word boundaries, so every word gets its own colour arrangement:</p>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Chars</th><th>Word</th><th>L0 front</th><th>L1</th><th>L2</th><th>L3 back</th></tr></thead>
+      <tbody id="schemeTable"></tbody>
+    </table>
+  </div>
+  <div class="prose">
+    <p>Within a segment no two layers share a bit. After the fill, each pixel's value is the <b>set of layers covering it</b>, so the drawing order doesn't matter. Bits 5–7 (32, 64, 128) are reserved for the animated objects and the shine sprite (<code>32 shl l</code>, line 416). The <code>scheme</code> variable on line 256 is never used.</p>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">mix_col · set_palette_segment · lines 72–120, 816–850</div>
+  <h2>A palette built like stage lights</h2>
+  <div class="prose">
+    <p><code>mix_col</code> mode 0 is a per-channel add, clamped at 63 (the VGA DAC is 6-bit). Modes 1 and 2, alpha and 70/30 blends, are never called. <code>set_palette_segment(src, dst, arr, c)</code> sets eight entries: <code>palette[dst+n] := arr[src+n] + c</code>. Each step copies everything built so far and adds one new light:</p>
+  </div>
+  <figure>
+    <div class="strips" id="strips"></div>
+    <figcaption>Each strip is the palette range one step produces. Its colours are the previous entries plus that step's light. The last step's 128 entries wrap onto four rows.</figcaption>
+  </figure>
+  <div class="prose">
+    <p>As a result, <code>palette[i]</code> is the sum of the lights for the bits set in <code>i</code>, clamped at 63. Overlapping layers blend <b>additively</b>, like coloured gels in front of lamps. Try any combination:</p>
+  </div>
+  <figure>
+    <div class="mixer">
+      <div style="display:grid;gap:14px;min-width:0">
+        <label class="range" for="mixSeg">Word <select id="mixSeg"></select></label>
+        <div class="controls" style="gap:8px" id="mixLayers"></div>
+        <div class="mix-out">
+          <div class="big" id="mixSw"></div>
+          <div class="mono" id="mixTxt"></div>
+        </div>
+      </div>
+      <div style="display:grid;gap:8px;min-width:0">
+        <div class="grid32" id="grid32"></div>
+        <div class="legend-row"><span>B = bit 0 blue</span><span>G = bit 1 green</span><span>R = bit 2 red</span><span>M = bit 3 magenta</span><span>C = bit 4 cyan</span></div>
+      </div>
+    </div>
+    <figcaption>Indices 0–31 are every combination of the five text bits. The outlined entry is the pixel value you get where the selected layers overlap.</figcaption>
+  </figure>
+  <figure>
+    <div class="grid256" id="grid256"></div>
+    <div class="legend-row"><span><i class="sw" style="background:var(--muted);border-radius:50%"></i> forced to black on the DAC</span></div>
+    <figcaption>The full 256-entry palette as uploaded. Lines 840–850 then set every index made only of bits 5–7 to black: 32, 64, 128, 96, 160, 192 and 224 (lines 848–850 all set 224). An object alone on the background is invisible, and over text it shows as a grey brightening.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <div class="eyebrow">Default VGA palette · mode 13h</div>
+  <h2>The word colours next to the stock VGA palette</h2>
+  <div class="prose">
+    <p>Each colour from <span class="word">ANOTHER</span>, <span class="word">SCROLLER</span> and <span class="word">ENJOY</span>, matched to the closest of the 256 colours a VGA card loads by default in mode 13h. In each pair, the left half is the scene's colour and the right half is the nearest default entry. Δ is the straight-line RGB distance in 6-bit DAC units, where 0 is an exact match.</p>
+    <p>Every single-layer colour has a close match. Three overlap colours don't: olive yellow <code>(40,40,0)</code>, dusty pink <code>(40,30,30)</code> and sage <code>(30,40,30)</code>. The default palette has no mid-bright yellow and no low-saturation colours at that brightness, so they fall to a darker olive or plain grey.</p>
+  </div>
+  <div class="vgawords" id="vgaWords"></div>
+  <p class="note">The default palette here is generated from its standard layout: 16 EGA colours, 16 greys, nine 24-hue rings at three brightness and saturation levels, and 8 blacks. Hex values convert 6-bit values with v × 255 / 63.</p>
+</section>
+
+<section>
+  <div class="eyebrow">Caveat</div>
+  <h2>Where two words meet</h2>
+  <div class="prose">
+    <p>Bits are only clash-free <b>within one segment</b>. The layers are spread out horizontally, so layer 1 can be showing a letter of <span class="word">SCROLLER</span> (value 3 = bits 0+1) while layer 3 shows a letter of <span class="word">ANOTHER</span> in the same spot (value 9 = bits 0+3). Both use bit 0, so where they overlap that bit cancels under XOR:</p>
+  </div>
+  <div class="pair" id="caveat"></div>
+  <div class="prose"><p>The overlap shows a slightly different colour. It is easy to miss in motion and was probably accepted on purpose.</p></div>
+</section>
+
+<footer>
+  <p>Line numbers refer to <code>SCROLL.PAS</code>. The demo and diagrams run the scene's own constants and palette code in JavaScript. The glyph font and the exact contents of <code>textw480.bin</code> are approximated.</p>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+
+/* ---------- Palette, exactly as lines 72–850 build it ---------- */
+const BASE = [[0,0,0],[0,0,40],[0,40,0],[0,40,40],[40,0,0],[40,0,40],[40,40,0],[40,40,40]];
+const PAL = Array.from({length:256}, () => [0,0,0]);
+function seg(src, dst, arr, c) {
+  for (let n = 0; n < 8; n++) { const a = arr[src+n]; PAL[dst+n] = [0,1,2].map(i => Math.min(a[i] + c[i], 63)); }
+}
+seg(0, 0, BASE, [0,0,0]);
+seg(0, 8, PAL, [30,0,30]);
+seg(0, 16, PAL, [0,30,30]); seg(8, 24, PAL, [0,30,30]);
+for (const s of [0,8,16,24]) seg(s, 32+s, PAL, [10,10,10]);
+for (let n = 0; n < 8; n++) seg(n*8, 64+n*8, PAL, [20,20,20]);
+for (let n = 0; n < 16; n++) seg(n*8, 128+n*8, PAL, [35,35,35]);
+const FORCED = [32,64,128,96,192,160,224];
+const DAC = PAL.map(c => c.slice());
+for (const i of FORCED) DAC[i] = [0,0,0];
+const to8 = v => Math.round(v * 255 / 63);
+const RGB8 = DAC.map(c => c.map(to8));
+const css = i => `rgb(${RGB8[i].join(',')})`;
+const cssRaw = c => `rgb(${c.map(to8).join(',')})`;
+const inkFor = i => { const [r,g,b] = RGB8[i]; return (0.299*r + 0.587*g + 0.114*b) > 120 ? '#000' : '#fff'; };
+const BITNAME = ['B','G','R','M','C','+10','+20','+35'];
+const bitsOf = v => { const b = []; for (let i = 0; i < 8; i++) if (v & (1<<i)) b.push(i); return b; };
+const bitStr = v => bitsOf(v).map(i => BITNAME[i]).join('+') || 'none';
+
+/* ---------- Scene constants ---------- */
+const SCHEME = [[16,2,4,9],[16,2,4,8],[16,3,4,8],[16,1,4,8],[8,4,2,16],[1,2,4,8]];
+const segOf = ch => ch > 31 ? 5 : ch > 25 ? 4 : ch > 22 ? 3 : ch > 13 ? 2 : ch > 8 ? 1 : 0;
+const MSG = 'ANOTHER NICE SCROLLER TO ENJOY TODAY';
+const WORDS = [['1–8','ANOTHER'],['9–13','NICE'],['14–22','SCROLLER'],['23–25','TO'],['26–31','ENJOY'],['32+','TODAY']];
+const LAYERS = [{k:1,w:42},{k:0.9062,w:38},{k:0.81095,w:34},{k:0.7175,w:30}];
+const SHIFT = 145;
+const FACT = {F:.8, I:.5, J:.8, L:.4, M:1.6, Q:1, R:.8, T:.8, W:1.6, ' ':.5};
+const POS = LAYERS.map(L => {           // precalc_text, 1-based like the Pascal string
+  const p = [0]; let u = 0;
+  for (let n = 1; n <= MSG.length; n++) { p[n] = u; u += Math.trunc(L.w * (FACT[MSG[n-1]] ?? 1)); }
+  p.push(u); return p;
+});
+const LCOL = [css(16), css(2), css(4), css(9)];
+const LNAME = ['L0 front','L1','L2','L3 back'];
+
+/* ---------- Live scroller ---------- */
+const W = 360, H = 128;
+const out = $('#scroller'), octx = out.getContext('2d');
+const mask = document.createElement('canvas'); mask.width = W; mask.height = H;
+const mctx = mask.getContext('2d', {willReadFrequently: true});
+const idx = new Uint8Array(W*H), shown = new Uint8Array(W*H);
+const img = octx.createImageData(W, H);
+const FONT = '156px Anton, Impact, "Arial Narrow Bold", sans-serif';
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const st = { t: (280 + 260) / 120, playing: !reduce, planes: 4, on: [true,true,true,true], last: 0, tx: 0 };
+
+function renderScroller(tx) {
+  idx.fill(0);
+  for (let l = 0; l < 4; l++) {
+    if (!st.on[l]) continue;
+    const ox = Math.round(tx * LAYERS[l].k + SHIFT);
+    const groups = new Map();
+    for (let n = 1; n <= MSG.length; n++) {
+      const ch = MSG[n-1]; if (ch === ' ') continue;
+      const x = ox + 4 * POS[l][n];
+      if (x > W || x < -220) continue;
+      const c = SCHEME[segOf(n)][l];
+      if (!groups.has(c)) groups.set(c, []);
+      groups.get(c).push([ch, x]);
+    }
+    for (const [c, list] of groups) {
+      mctx.clearRect(0, 0, W, H);
+      mctx.fillStyle = '#fff'; mctx.font = FONT; mctx.textBaseline = 'alphabetic';
+      for (const [ch, x] of list) mctx.fillText(ch, x, 120);
+      const d = mctx.getImageData(0, 0, W, H).data;
+      for (let i = 0; i < W*H; i++) if (d[i*4+3] > 127) idx[i] ^= c;
+    }
+  }
+  const k = st.planes, px = img.data;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const v = idx[y*W + (x & ~3) + Math.min(x & 3, k - 1)];
+    shown[y*W + x] = v;
+    const o = (y*W + x) * 4, c = RGB8[v];
+    px[o] = c[0]; px[o+1] = c[1]; px[o+2] = c[2]; px[o+3] = 255;
+  }
+  octx.putImageData(img, 0, 0);
+}
+function frame(now) {
+  const dt = st.last ? Math.min((now - st.last) / 1000, 0.1) : 0;
+  st.last = now;
+  if (st.playing) st.t += dt;
+  let tx = 280 - 2 * Math.floor(st.t * 60);
+  if (Math.round(tx * LAYERS[3].k + SHIFT) + 4 * POS[3][MSG.length + 1] < -60) { st.t = 0; tx = 280; }
+  st.tx = tx;
+  renderScroller(tx);
+  requestAnimationFrame(frame);
+}
+$('#playBtn').addEventListener('click', () => {
+  st.playing = !st.playing;
+  $('#playBtn').textContent = st.playing ? 'Pause' : 'Play';
+});
+$('#playBtn').textContent = st.playing ? 'Pause' : 'Play';
+$('#planes').addEventListener('input', e => { st.planes = +e.target.value; $('#planesVal').textContent = st.planes; });
+const lt = $('#layerToggles');
+LAYERS.forEach((L, l) => {
+  const lab = document.createElement('label'); lab.className = 'chip';
+  lab.innerHTML = `<input type="checkbox" id="layer${l}" checked><i class="sw" style="background:${LCOL[l]}"></i>${LNAME[l]}`;
+  lab.querySelector('input').addEventListener('change', e => { st.on[l] = e.target.checked; });
+  lt.appendChild(lab);
+});
+out.addEventListener('mousemove', e => {
+  const r = out.getBoundingClientRect();
+  const x = Math.min(W-1, Math.max(0, Math.floor((e.clientX - r.left) / r.width * W)));
+  const y = Math.min(H-1, Math.max(0, Math.floor((e.clientY - r.top) / r.height * H)));
+  const v = shown[y*W + x];
+  const c = DAC[v];
+  $('#crtReadout').innerHTML = `<span>pixel (${x}, ${y})</span><span>plane ${x & 3}</span><span>index ${v} = ${bitStr(v)}</span><span>DAC (${c.join(', ')})</span><span>text_x ${st.tx}</span>`;
+});
+out.addEventListener('mouseleave', () => { $('#crtReadout').innerHTML = '<span>Hover the band to inspect a pixel.</span>'; });
+const startScroller = () => requestAnimationFrame(frame);
+if (document.fonts && document.fonts.load) {
+  Promise.race([document.fonts.load(FONT), new Promise(r => setTimeout(r, 2500))]).then(startScroller, startScroller);
+} else startScroller();
+
+/* ---------- Edge fill diagram ---------- */
+const EC = 14, ER = 12, CS = 22;
+const A = (r, c) => c >= 1 && c <= 7 && r >= 1 && r <= 10 && !(c >= 3 && c <= 5 && r >= 3 && r <= 8);
+const B = (r, c) => (r >= 2 && r <= 4 && c >= 5 && c <= 12) || (r >= 5 && r <= 11 && c >= 8 && c <= 9);
+const F = (r, c) => r < 0 ? 0 : (A(r, c) ? 4 : 0) ^ (B(r, c) ? 2 : 0);
+const E = (r, c) => F(r, c) ^ F(r - 1, c);
+function drawEdges(s) {
+  const ox1 = 40, ox2 = ox1 + EC*CS + 56, oy = 40;
+  let h = '';
+  h += `<text x="${ox1}" y="22" class="t-fg" font-size="13" font-weight="600">Edge buffer (scratch)</text>`;
+  h += `<text x="${ox2}" y="22" class="t-fg" font-size="13" font-weight="600">VGA memory after xorfill</text>`;
+  for (let r = 0; r < ER; r++) {
+    h += `<text x="${ox1 - 8}" y="${oy + r*CS + 15}" text-anchor="end" class="t-muted" font-size="10">${r}</text>`;
+    for (let c = 0; c < EC; c++) {
+      const e = E(r, c), x1 = ox1 + c*CS, x2 = ox2 + c*CS, y = oy + r*CS;
+      if (r < s || !e) {
+        h += `<rect x="${x1}" y="${y}" width="${CS-2}" height="${CS-2}" rx="2" class="f-cell"/>`;
+        if (e) h += `<text x="${x1 + CS/2 - 1}" y="${y + 15}" text-anchor="middle" font-size="11" class="t-muted" opacity="0.55">${e}</text>`;
+      } else {
+        h += `<rect x="${x1}" y="${y}" width="${CS-2}" height="${CS-2}" rx="2" fill="${css(e)}"/>`;
+        h += `<text x="${x1 + CS/2 - 1}" y="${y + 15}" text-anchor="middle" font-size="11" font-weight="600" fill="${inkFor(e)}">${e}</text>`;
+      }
+      if (r < s) {
+        const v = F(r, c);
+        h += `<rect x="${x2}" y="${y}" width="${CS-2}" height="${CS-2}" rx="2" ${v ? `fill="${css(v)}"` : 'class="f-crt"'}/>`;
+      } else {
+        h += `<rect x="${x2}" y="${y}" width="${CS-2}" height="${CS-2}" rx="2" class="f-cell" opacity="0.5"/>`;
+      }
+    }
+  }
+  if (s < ER) {
+    const y = oy + s*CS - 1;
+    h += `<line x1="${ox1 - 4}" x2="${ox2 + EC*CS}" y1="${y}" y2="${y}" class="s-accent" stroke-width="2"/>`;
+    h += `<text x="${ox2 + EC*CS + 4}" y="${y + 4}" class="f-accent" font-size="11">si</text>`;
+  }
+  const ay = oy + ER*CS + 22;
+  h += `<text x="${ox2 - 8}" y="${ay}" text-anchor="end" class="t-muted" font-size="11">eax</text>`;
+  for (let c = 0; c < EC; c++) {
+    const v = s > 0 ? F(s - 1, c) : 0;
+    h += `<text x="${ox2 + c*CS + CS/2 - 1}" y="${ay}" text-anchor="middle" font-size="12" class="${v ? 't-fg' : 't-muted'}" font-weight="${v ? 600 : 400}">${v}</text>`;
+  }
+  h += `<text x="${ox1}" y="${ay + 26}" class="t-muted" font-size="11">eax = running XOR of the column so far (4 = ring, 2 = T, 6 = both)</text>`;
+  $('#edgeSvg').innerHTML = h;
+  $('#edgeRowVal').textContent = s;
+}
+let edgeTimer = null;
+$('#edgeRow').addEventListener('input', e => drawEdges(+e.target.value));
+$('#edgePlay').addEventListener('click', () => {
+  if (edgeTimer) { clearInterval(edgeTimer); edgeTimer = null; $('#edgePlay').textContent = 'Play scan'; return; }
+  let s = 0; $('#edgeRow').value = 0; drawEdges(0);
+  $('#edgePlay').textContent = 'Stop';
+  edgeTimer = setInterval(() => {
+    s++; $('#edgeRow').value = s; drawEdges(s);
+    if (s >= ER) { clearInterval(edgeTimer); edgeTimer = null; $('#edgePlay').textContent = 'Play scan'; }
+  }, reduce ? 50 : 420);
+});
+drawEdges(7);
+
+/* ---------- Plane diagram ---------- */
+function getXXW(x, p) {             // lines 296–323
+  const s = p < (x & 3) ? 1 : 0;
+  const w = (p - (x - 4)) & 3;
+  const xx = Math.floor(x / 4) + s;
+  return { w, xx };
+}
+let planeP = 2;
+const GW = 9, NPX = 24, PC = 26;
+function drawPlanes() {
+  const x = +$('#pxX').value, p = planeP;
+  const { w, xx } = getXXW(x, p);
+  const ox = 40, y1 = 40, y2 = 100, y3 = 170;
+  let h = '';
+  h += `<text x="${ox}" y="${y1 - 14}" class="t-fg" font-size="12" font-weight="600">screen pixels (number = plane)</text>`;
+  for (let i = 0; i < NPX; i++) {
+    const inGlyph = i >= x && i < x + GW, hit = inGlyph && (i & 3) === p;
+    h += `<rect x="${ox + i*PC}" y="${y1}" width="${PC-2}" height="${PC-2}" rx="3" ${hit ? 'class="f-accent"' : 'class="f-cell"'} opacity="${(i & 3) === p || hit ? 1 : 0.55}"/>`;
+    h += `<text x="${ox + i*PC + PC/2 - 1}" y="${y1 + 17}" text-anchor="middle" font-size="11" ${hit ? 'fill="var(--accent-ink)"' : 'class="t-muted"'}>${i & 3}</text>`;
+    if (i % 4 === 0) h += `<text x="${ox + i*PC}" y="${y1 + PC + 12}" font-size="9" class="t-muted">${i}</text>`;
+  }
+  h += `<text x="${ox}" y="${y2 - 12}" class="t-fg" font-size="12" font-weight="600">glyph columns gx (9 px wide, placed at x = ${x})</text>`;
+  for (let g = 0; g < GW; g++) {
+    const i = x + g, hit = (i & 3) === p;
+    h += `<rect x="${ox + i*PC}" y="${y2}" width="${PC-2}" height="${PC-2}" rx="3" fill="none" class="${hit ? 's-accent' : 's-line'}" stroke-width="${hit ? 2 : 1}"/>`;
+    h += `<text x="${ox + i*PC + PC/2 - 1}" y="${y2 + 17}" text-anchor="middle" font-size="11" class="${hit ? 'f-accent' : 't-muted'}" font-weight="${hit ? 600 : 400}">${g}</text>`;
+  }
+  h += `<text x="${ox}" y="${y3 - 12}" class="t-fg" font-size="12" font-weight="600">plane ${p} bytes (each covers 4 screen pixels)</text>`;
+  for (let c = 0; c < NPX/4; c++) {
+    const i = 4*c + p, used = i >= x && i < x + GW;
+    const isXX = c === xx;
+    h += `<rect x="${ox + i*PC}" y="${y3}" width="${PC-2}" height="${PC-2}" rx="3" ${used ? 'class="f-accent"' : 'class="f-cell"'} ${isXX ? 'stroke="var(--fg)" stroke-width="2"' : ''}/>`;
+    h += `<text x="${ox + i*PC + PC/2 - 1}" y="${y3 + 17}" text-anchor="middle" font-size="11" ${used ? 'fill="var(--accent-ink)"' : 'class="t-muted"'}>${c}</text>`;
+    if (isXX) h += `<text x="${ox + i*PC + PC/2 - 1}" y="${y3 + PC + 14}" text-anchor="middle" font-size="11" class="t-fg" font-weight="600">xx</text>`;
+  }
+  $('#planeSvg').innerHTML = h;
+  const cols = []; for (let g = w; g < GW; g += 4) cols.push(g);
+  $('#planeReadout').textContent = `get_xx_w(x=${x}, p=${p})  →  w = ${w}, xx = ${xx}    variant ${w} holds glyph columns ${cols.join(', ')}    header = (ascii-65)*24 + ${w*6}`;
+  $('#pxXVal').textContent = x;
+}
+const pb = $('#planeBtns');
+for (let p = 0; p < 4; p++) {
+  const b = document.createElement('button'); b.type = 'button'; b.textContent = `plane ${p}`;
+  b.setAttribute('role', 'radio');
+  b.addEventListener('click', () => { planeP = p; syncPB(); drawPlanes(); });
+  pb.appendChild(b);
+}
+function syncPB() { [...pb.children].forEach((b, i) => { b.className = i === planeP ? 'primary' : ''; b.setAttribute('aria-checked', i === planeP); }); }
+syncPB();
+$('#pxX').addEventListener('input', drawPlanes);
+drawPlanes();
+
+/* ---------- Layer table ---------- */
+$('#layerTable').innerHTML = LAYERS.map((L, l) => `<tr><td><span class="cval"><i class="sw" style="background:${LCOL[l]}"></i>${LNAME[l]}</span></td><td class="num">${L.k}</td><td class="num">${L.w}</td><td class="num">${(L.w/42).toFixed(3)}</td><td class="num">${(1/L.k).toFixed(3)}</td></tr>`).join('');
+
+/* ---------- Perspective diagram ---------- */
+function drawPersp(tx) {
+  const sx0 = 180, ys = 160, d = 240, ex = sx0 + SHIFT, ey = ys + d;
+  const rowY = LAYERS.map(L => ys - (1/L.k - 1) * d);
+  const top = rowY[3] - 34;
+  let h = '';
+  // frustum
+  for (const sx of [0, 360]) {
+    const px = sx0 + sx, t = (ey - top) / (ey - ys);
+    h += `<line x1="${ex}" y1="${ey}" x2="${ex + (px - ex) * t}" y2="${top}" class="s-line" stroke-dasharray="4 4"/>`;
+  }
+  // vanishing line
+  h += `<line x1="${ex}" y1="${ey}" x2="${ex}" y2="${top}" class="s-accent" stroke-dasharray="2 5" opacity="0.8"/>`;
+  h += `<text x="${ex + 6}" y="${top + 10}" class="f-accent" font-size="11">x = shift (${SHIFT}) stays put</text>`;
+  // rows
+  LAYERS.forEach((L, l) => {
+    const y = rowY[l];
+    h += `<line x1="20" x2="700" y1="${y}" y2="${y}" stroke="${LCOL[l]}" stroke-width="${l ? 1.5 : 1}" opacity="${l ? 0.9 : 0.35}"/>`;
+    if (l) h += `<text x="20" y="${y - 6}" font-size="10" class="t-muted">${LNAME[l]} · prlx ${L.k}</text>`;
+  });
+  // letters (same world X on every row)
+  const letters = [];
+  for (let n = 1; n <= MSG.length; n++) {
+    if (MSG[n-1] === ' ') continue;
+    const X = SHIFT + tx + 4 * POS[0][n];
+    if (sx0 + X < 20 || sx0 + X > 700) continue;
+    letters.push([n, X]);
+  }
+  for (const [n, X] of letters) for (let l = 1; l < 4; l++) {
+    const y = rowY[l];
+    h += `<circle cx="${sx0 + X}" cy="${y}" r="2.5" fill="${LCOL[l]}"/>`;
+    h += `<text x="${sx0 + X}" y="${y - 6}" text-anchor="middle" font-size="12" class="t-fg" font-weight="600">${MSG[n-1]}</text>`;
+  }
+  // rays for one letter
+  let pick = letters.find(([n, X]) => X > 30) || letters[0];
+  const hits = [];
+  if (pick) {
+    const [n, X] = pick;
+    LAYERS.forEach((L, l) => {
+      const y = rowY[l], hx = SHIFT + L.k * (X - SHIFT);
+      hits.push(hx);
+      h += `<line x1="${ex}" y1="${ey}" x2="${sx0 + X}" y2="${y}" stroke="${LCOL[l]}" stroke-width="1.6"/>`;
+      h += `<circle cx="${sx0 + hx}" cy="${ys}" r="4.5" fill="${LCOL[l]}" class="s-fg" stroke-width="1"/>`;
+    });
+  }
+  // screen
+  h += `<line x1="20" x2="700" y1="${ys}" y2="${ys}" class="s-line" stroke-dasharray="3 4"/>`;
+  h += `<line x1="${sx0}" x2="${sx0 + 360}" y1="${ys}" y2="${ys}" class="s-fg" stroke-width="3"/>`;
+  h += `<text x="${sx0}" y="${ys + 20}" font-size="11" class="t-muted">0</text><text x="${sx0 + 360}" y="${ys + 20}" text-anchor="end" font-size="11" class="t-muted">360</text>`;
+  h += `<text x="${sx0 + 360 + 10}" y="${ys + 4}" font-size="11" class="t-fg">screen = L0 (prlx 1)</text>`;
+  // eye
+  h += `<circle cx="${ex}" cy="${ey}" r="6" class="f-accent"/><text x="${ex + 12}" y="${ey + 4}" font-size="11" class="t-fg">eye</text>`;
+  $('#perspSvg').innerHTML = h;
+  $('#perspXVal').textContent = tx;
+  $('#perspReadout').textContent = pick
+    ? `letter "${MSG[pick[0]-1]}" (char ${pick[0]}) lands at screen x = ` + hits.map((v, l) => `L${l} ${Math.round(v)}`).join('   ')
+    : 'no letters in view at this text_x';
+}
+$('#perspX').addEventListener('input', e => drawPersp(+e.target.value));
+drawPersp(-260);
+
+/* ---------- Scheme table ---------- */
+const chipFor = v => `<span class="cval"><i class="sw" style="background:${css(v)}"></i>${v} <span style="color:var(--muted)">${bitStr(v)}</span></span>`;
+$('#schemeTable').innerHTML = SCHEME.map((row, s) => `<tr><td class="num">${WORDS[s][0]}</td><td><span class="word">${WORDS[s][1]}</span></td>${row.map(chipFor).map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
+
+/* ---------- Palette strips ---------- */
+const STEPS = [
+  { lbl: 'Base: 3-bit RGB', code: '0–7 = base_colors', from: 0, to: 8, light: null },
+  { lbl: 'Bit 3 adds magenta', code: '8–15 = 0–7 + (30,0,30)', from: 8, to: 16, light: [30,0,30] },
+  { lbl: 'Bit 4 adds cyan', code: '16–31 = 0–15 + (0,30,30)', from: 16, to: 32, light: [0,30,30] },
+  { lbl: 'Bit 5 adds grey 10', code: '32–63 = 0–31 + 10', from: 32, to: 64, light: [10,10,10] },
+  { lbl: 'Bit 6 adds grey 20', code: '64–127 = 0–63 + 20', from: 64, to: 128, light: [20,20,20] },
+  { lbl: 'Bit 7 adds grey 35', code: '128–255 = 0–127 + 35', from: 128, to: 256, light: [35,35,35] },
+];
+$('#strips').innerHTML = STEPS.map(s => {
+  const cells = []; for (let i = s.from; i < s.to; i++) cells.push(`<i style="background:${cssRaw(PAL[i])}" title="${i}: (${PAL[i].join(',')})"></i>`);
+  const tall = s.to - s.from > 64 ? ' tall' : '';
+  const light = s.light ? `<i class="sw" style="background:${cssRaw(s.light)};vertical-align:-2px"></i> ` : '';
+  return `<div class="strip"><div class="lbl">${light}<b>${s.lbl}</b><br><code>${s.code}</code></div><div class="cells${tall}">${cells.join('')}</div></div>`;
+}).join('');
+
+/* ---------- Mixer ---------- */
+const mixSeg = $('#mixSeg');
+mixSeg.innerHTML = WORDS.map((w, i) => `<option value="${i}">${w[1]} (chars ${w[0]})</option>`).join('');
+const mixOn = [true, true, false, false];
+const ml = $('#mixLayers');
+function renderMixLayers() {
+  const s = +mixSeg.value;
+  ml.innerHTML = '';
+  LAYERS.forEach((L, l) => {
+    const v = SCHEME[s][l];
+    const lab = document.createElement('label'); lab.className = 'chip';
+    lab.innerHTML = `<input type="checkbox" id="mix${l}" ${mixOn[l] ? 'checked' : ''}><i class="sw" style="background:${css(v)}"></i>${LNAME[l]} = ${v}`;
+    lab.querySelector('input').addEventListener('change', e => { mixOn[l] = e.target.checked; renderMix(); });
+    ml.appendChild(lab);
+  });
+}
+const g32 = $('#grid32');
+g32.innerHTML = Array.from({length:32}, (_, i) => `<div class="g32" data-i="${i}" style="background:${css(i)};color:${inkFor(i)}">${i}<br>${bitsOf(i).map(b => BITNAME[b]).join('') || '·'}</div>`).join('');
+function renderMix() {
+  const s = +mixSeg.value;
+  let v = 0; const parts = [];
+  LAYERS.forEach((L, l) => { if (mixOn[l]) { v ^= SCHEME[s][l]; parts.push(SCHEME[s][l]); } });
+  const c = DAC[v];
+  $('#mixSw').style.background = css(v);
+  $('#mixTxt').innerHTML = `${parts.join(' xor ') || 'no layers'}<br>= index <b>${v}</b> (bits ${bitStr(v)})<br>DAC (${c.join(', ')})<br>8-bit rgb(${RGB8[v].join(', ')})`;
+  [...g32.children].forEach((el, i) => el.classList.toggle('on', i === v));
+}
+mixSeg.addEventListener('change', () => { renderMixLayers(); renderMix(); });
+renderMixLayers(); renderMix();
+
+/* ---------- 256 grid ---------- */
+$('#grid256').innerHTML = DAC.map((c, i) => `<i class="${FORCED.includes(i) ? 'forced' : ''}" style="background:${css(i)}" title="${i}: (${c.join(',')}) ${bitStr(i)}"></i>`).join('');
+
+/* ---------- Default VGA palette comparison ---------- */
+const VGA = [[0,0,0],[0,0,42],[0,42,0],[0,42,42],[42,0,0],[42,0,42],[42,21,0],[42,42,42],
+  [21,21,21],[21,21,63],[21,63,21],[21,63,63],[63,21,21],[63,21,63],[63,63,21],[63,63,63]];
+for (const g of [0,5,8,11,14,17,20,24,28,32,36,40,45,50,56,63]) VGA.push([g,g,g]);
+for (const [a,b,c,d,e] of [[0,16,31,47,63],[31,39,47,55,63],[45,49,54,58,63],[0,7,14,21,28],[14,17,21,24,28],
+    [20,22,24,26,28],[0,4,8,12,16],[8,10,12,14,16],[11,12,13,15,16]])
+  VGA.push([a,a,e],[b,a,e],[c,a,e],[d,a,e],[e,a,e],[e,a,d],[e,a,c],[e,a,b],
+           [e,a,a],[e,b,a],[e,c,a],[e,d,a],[e,e,a],[d,e,a],[c,e,a],[b,e,a],
+           [a,e,a],[a,e,b],[a,e,c],[a,e,d],[a,e,e],[a,d,e],[a,c,e],[a,b,e]);
+for (let i = 0; i < 8; i++) VGA.push([0,0,0]);
+const dist = (p, q) => Math.hypot(p[0]-q[0], p[1]-q[1], p[2]-q[2]);
+const nearestVGA = c => { let best = 0; VGA.forEach((v, i) => { if (dist(c, v) < dist(c, VGA[best])) best = i; }); return best; };
+const hex = c => '#' + c.map(v => to8(v).toString(16).padStart(2, '0').toUpperCase()).join('');
+const vgaRow = (label, v) => {
+  const c = PAL[v], n = nearestVGA(c), d = dist(c, VGA[n]);
+  return `<tr><td>${label}</td><td><span class="vgapair"><i style="background:${cssRaw(c)}" title="scene ${hex(c)}"></i><i style="background:${cssRaw(VGA[n])}" title="VGA ${n} ${hex(VGA[n])}"></i></span></td>` +
+    `<td class="num">${v}</td><td class="num">${c.join(', ')}</td><td class="num">${hex(c)}</td>` +
+    `<td class="num"><b>${n}</b></td><td class="num">${VGA[n].join(', ')}</td><td class="num">${hex(VGA[n])}</td>` +
+    `<td class="num">${d === 0 ? '0' : d.toFixed(1)}${d > 6 ? '<span class="flag">no close match</span>' : ''}</td></tr>`;
+};
+$('#vgaWords').innerHTML = [[0, 'ANOTHER'], [2, 'SCROLLER'], [4, 'ENJOY']].map(([s, word]) => {
+  const vals = SCHEME[s];
+  let rows = vals.map((v, l) => vgaRow(`<span class="cval">${LNAME[l]}</span>`, v)).join('');
+  rows += `<tr class="sub"><td colspan="9">Where layers overlap</td></tr>`;
+  const seen = new Set();
+  for (let m = 1; m < 16; m++) {
+    const ls = [0,1,2,3].filter(l => m & (1 << l));
+    if (ls.length < 2) continue;
+    const v = ls.reduce((a, l) => a ^ vals[l], 0);
+    if (seen.has(v)) continue; seen.add(v);
+    rows += vgaRow(ls.length === 4 ? 'all four' : ls.map(l => 'L' + l).join(' + '), v);
+  }
+  return `<div><h3><span class="word" style="font-size:1.5rem">${word}</span> <span class="ref">layer values ${vals.join(', ')}</span></h3>` +
+    `<div class="tablewrap"><table><thead><tr><th>Colour</th><th>Scene | VGA</th><th>Index</th><th>DAC RGB</th><th>Hex</th><th>VGA #</th><th>VGA RGB</th><th>VGA hex</th><th>Δ</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+}).join('');
+
+/* ---------- Caveat ---------- */
+const or = 3 | 9, xr = 3 ^ 9;
+$('#caveat').innerHTML = [
+  [or, `intended (OR): 3 | 9 = ${or}<br>${bitStr(or)}<br>DAC (${DAC[or].join(', ')})`],
+  [xr, `actual (XOR): 3 xor 9 = ${xr}<br>${bitStr(xr)}<br>DAC (${DAC[xr].join(', ')})`],
+].map(([v, t]) => `<div><i class="big" style="background:${css(v)}"></i><span>${t}</span></div>`).join('');
+})();
+</script>
+
+</body></html>
