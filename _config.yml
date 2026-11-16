@@ -45,6 +45,9 @@ plugins:
   - jekyll-seo-tag
   - jektex
 
+feed:
+  posts_limit: 30
+
 jektex:
   cache_dir: ".jektex-cache"
   ignore: ["*.xml"]
